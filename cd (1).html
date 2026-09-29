@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>미니 CD 앨범 커버 메이커 (수업용)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- jsPDF Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;700;800&display=swap');
+        body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; }
+        @media print { .no-print { display: none !important; } }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useRef, useEffect } = React;
+
+        const CONCEPT_DATA = {
+            fairy: {
+                label: '신비롭고 몽환적인 (요정/판타지)',
+                effects: 'soft glow, dreamy haze, sparkling light, iridescent, translucent glass',
+                colors: ['라벤더 & 펄 블루', '연보라 & 핑크', '민트 & 라일락', '스카이블루 & 화이트', '퍼플 & 실버', '로즈핑크 & 라벤더', '딥블루 & 퍼플', '아이스블루 & 핑크', '피치 & 라일락', '네이비 & 홀로그램 퍼플'],
+                bgs: ['별이 반짝이는 밤하늘', '안개 낀 호숫가', '신비로운 숲', '구름 위 천공', '은하수 우주', '꽃이 핀 정원', '달빛 비치는 바다', '얼음 궁전', '노을진 하늘', '몽환적인 우주'],
+                objs: ['초승달, 별가루, 수정', '백조, 꽃잎, 거울', '나비, 버섯, 반딧불', '깃털, 날개, 별', '행성, 크리스털, 별자리', '장미, 리본, 진주', '달, 물결, 유리구슬', '눈꽃, 수정, 왕관', '구름, 별, 비눗방울', '홀로그램 조각, 별가루, 문']
+            },
+            teen: {
+                label: '청량하고 밝은 (하이틴/유스)',
+                effects: 'bright sunlight, water splash, glossy, lens flare, clear blue sky',
+                colors: ['스카이블루 & 화이트', '아쿠아 & 레몬', '민트 & 코랄', '블루 & 옐로우', '라이트그린 & 하늘색', '코발트블루 & 화이트', '핑크 & 하늘색', '오렌지 & 블루', '청록 & 라임', '라이트블루 & 네이비'],
+                bgs: ['파란 하늘과 구름', '여름 바다', '수영장', '해변', '초원', '운동장', '학교 복도', '햇빛 가득한 도시', '놀이공원', '바닷가 도로'],
+                objs: ['비행기, 종이비행기', '튜브, 물방울, 조개', '선글라스, 음료', '서핑보드, 야자수', '데이지, 자전거', '농구공, 스니커즈', '폴라로이드, 스티커', '카메라, 이어폰', '풍선, 아이스크림', '컨버터블카, 구름']
+            },
+            crush: {
+                label: '강렬하고 힙한 (걸크러시/스트리트)',
+                effects: 'metallic, chrome, flash photography, neon lighting, high contrast',
+                colors: ['블랙 & 핫핑크', '레드 & 블랙', '실버 & 블랙', '퍼플 & 블랙', '라임 & 블랙', '코발트 & 실버', '오렌지 & 차콜', '와인 & 블랙', '핫핑크 & 일렉트릭블루', '화이트 & 블랙'],
+                bgs: ['네온 골목', '지하주차장', '메탈 스튜디오', '네온 클럽', '스트리트 골목', '산업용 창고', '도시 야경', '붉은 조명 무대', '네온 시티', '미니멀 스튜디오'],
+                objs: ['그래피티, 체인', '스포츠카, 스피커', '크롬 오브젝트', '레이저, 미러볼', '스케이트보드', '메탈 체인, 철제 프레임', '오토바이, 도로표지판', '가죽, 장미', 'LED 사인', '선글라스, 마이크']
+            },
+            y2k: {
+                label: 'Y2K 레트로 (뉴트로/키치)',
+                effects: 'holographic, glossy plastic, chrome typography, fisheye lens, sticker collage',
+                colors: ['베이비핑크 & 실버', '핫핑크 & 아쿠아', '라임 & 퍼플', '블루 & 핑크', '레몬 & 핑크', '실버 & 퍼플', '오렌지 & 아쿠아', '핑크 & 라임', '파스텔블루 & 옐로우', '핫핑크 & 실버'],
+                bgs: ['메탈릭 스튜디오', 'Y2K 사이버 공간', '게임 화면', '레트로 인터넷 화면', '키치한 방', '홀로그램 배경', '2000년대 잡지 화보', '스티커북', '레트로 침실', '미래형 쇼핑몰'],
+                objs: ['CD, MP3 플레이어', '플립폰, 별 스티커', '픽셀 아이콘', '하트, 커서', '토이카메라, 인형', 'CD, 크롬 하트', '스티커, 별', '체리, 리본', 'CRT 모니터, 키보드', '크롬 글자, 별']
+            },
+            dark: {
+                label: '어둡고 치명적인 (사이버펑크/뱀파이어)',
+                effects: 'cinematic shadow, red moonlight, fog, neon glow, wet pavement, dramatic backlight',
+                colors: ['블랙 & 딥레드', '버건디 & 블랙', '블랙 & 네온퍼플', '네이비 & 레드', '차콜 & 실버', '와인 & 퍼플', '블랙 & 네온블루', '퍼플 & 레드', '블랙 & 에메랄드', '네이비 & 핫핑크'],
+                bgs: ['고딕 성', '오래된 저택', '사이버펑크 도시', '밤거리', '폐허가 된 성당', '붉은 달 아래 숲', '미래도시', '어두운 궁전', '안개 낀 숲', '네온 골목'],
+                objs: ['장미, 촛불', '샹들리에, 거울', '홀로그램, 전선', '네온사인, 비', '십자가 장식, 촛대', '까마귀, 장미', 'LED, 홀로그램 화면', '왕관, 보석', '뱀, 수정', '네온 튜브, 오토바이']
+            }
+        };
+
+        function App() {
+            // Form State
+            const [albumName, setAlbumName] = useState('');
+            const [groupType, setGroupType] = useState('solo');
+            const [selectedVibe, setSelectedVibe] = useState('fairy');
+            
+            const [selectedColor, setSelectedColor] = useState(CONCEPT_DATA.fairy.colors[0]);
+            const [selectedBg, setSelectedBg] = useState(CONCEPT_DATA.fairy.bgs[0]);
+            const [selectedObj, setSelectedObj] = useState(CONCEPT_DATA.fairy.objs[0]);
+
+            // Final Image & Print State
+            const [finalImage, setFinalImage] = useState(null);
+            const [backColor, setBackColor] = useState('#252A5A');
+            const [printList, setPrintList] = useState([]);
+            const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+            
+            const fileInputRef = useRef(null);
+            const [copied, setCopied] = useState(false);
+
+            useEffect(() => {
+                const data = CONCEPT_DATA[selectedVibe];
+                setSelectedColor(data.colors[0]);
+                setSelectedBg(data.bgs[0]);
+                setSelectedObj(data.objs[0]);
+            }, [selectedVibe]);
+
+            // 1. 프롬프트 자동 생성 로직
+            const generatePrompt = () => {
+                const vibeInfo = CONCEPT_DATA[selectedVibe];
+                const vibeLabel = vibeInfo.label.split('(')[0].trim();
+                const placement = groupType === 'solo' 
+                    ? `인물은 중앙에 예쁘게 배치해 줘. 이미지 하단 중앙에 "${albumName || 'ALBUM'}" 라는 글자를 세련된 폰트로 적어줘.` 
+                    : `멤버 전원이 구도 안에 조화롭게 잘 배치되게 해줘. 이미지 상단 중앙에 "${albumName || 'ALBUM'}" 라는 글자를 멋진 폰트로 적어줘.`;
+
+                return `${selectedColor}를 메인 컬러로 사용한 ${vibeLabel} 느낌의 K-pop ${groupType === 'solo' ? '솔로' : '아이돌 그룹'} 앨범 커버 화보를 만들어줘. 
+배경은 ${selectedBg}이고, ${selectedObj} 장식이 추가되어 있어. 
+최고급 화질의 프로페셔널한 스튜디오 사진(8k resolution, cinematic lighting, ${vibeInfo.effects}) 스타일로 1:1 정사각형 비율로 그려줘.
+${placement} 의미 없는 다른 글자는 절대 넣지 마.`;
+            };
+
+            const handleCopyPrompt = () => {
+                navigator.clipboard.writeText(generatePrompt());
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            };
+
+            // 2. 완성된 이미지 업로드 처리
+            const handleImageUpload = (e) => {
+                const file = e.target.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => setFinalImage(reader.result);
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            // 3. 인쇄 목록 관리
+            const addToPrintList = () => {
+                if (!finalImage) return;
+                if (printList.length >= 10) { alert('A4 한 장에 최대 10개까지만 추가할 수 있습니다.'); return; }
+                setPrintList(prev => [...prev, { id: Date.now(), imageUrl: finalImage, albumName: albumName || 'ALBUM', backColor: backColor }]);
+            };
+
+            const hexToRgb = (hex) => {
+                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : { r: 255, g: 255, b: 255 };
+            };
+
+            // 4. PDF 저장 로직 (선생님께서 성공하셨던 jsPDF 도형 렌더링 방식 완벽 적용!)
+            const saveAsPdf = async () => {
+                if (printList.length === 0) return;
+                setIsGeneratingPdf(true);
+                
+                try {
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    
+                    const itemW = 80; const itemH = 37; const halfW = 40;
+                    const gapX = 10; const gapY = 10;
+                    const startX = (210 - (itemW * 2 + gapX)) / 2; 
+                    const startY = 20;
+
+                    for (let i = 0; i < printList.length; i++) {
+                        const item = printList[i];
+                        const col = i % 2;
+                        const row = Math.floor(i / 2);
+                        const x = startX + col * (itemW + gapX);
+                        const y = startY + row * (itemH + gapY);
+
+                        // 1. 오른쪽: 앞면 표지 (이미지)
+                        try {
+                            pdf.addImage(item.imageUrl, 'PNG', x + halfW, y, halfW, itemH);
+                        } catch (e) {
+                            pdf.setFillColor(230, 230, 230);
+                            pdf.rect(x + halfW, y, halfW, itemH, 'F');
+                        }
+
+                        // 2. 왼쪽: 뒷면 내지 (배경색)
+                        const rgb = hexToRgb(item.backColor);
+                        pdf.setFillColor(rgb.r, rgb.g, rgb.b);
+                        pdf.rect(x, y, halfW, itemH, 'F');
+
+                        // 3. 전체 칼선
+                        pdf.setDrawColor(200, 200, 200);
+                        pdf.setLineWidth(0.2);
+                        pdf.rect(x, y, itemW, itemH, 'S');
+
+                        // 4. 중앙 접지선
+                        pdf.setDrawColor(150, 150, 150);
+                        pdf.setLineDashPattern([1, 1], 0);
+                        pdf.line(x + halfW, y, x + halfW, y + itemH);
+                        pdf.setLineDashPattern([], 0);
+
+                        // 5. 텍스트 삽입 (회전)
+                        const isLight = (rgb.r * 0.299 + rgb.g * 0.587 + rgb.b * 0.114) > 186;
+                        pdf.setTextColor(isLight ? 80 : 255);
+                        pdf.setFontSize(9);
+                        const textWidth = pdf.getTextWidth(item.albumName.toUpperCase());
+                        pdf.text(item.albumName.toUpperCase(), x + (halfW / 2) + 2, y + (itemH / 2) + (textWidth / 2), { angle: 90 });
+                    }
+                    pdf.save('미니_CD_인쇄도안.pdf');
+                } catch (error) {
+                    console.error('PDF Error:', error);
+                    alert('PDF 생성 중 오류가 발생했습니다.');
+                } finally {
+                    setIsGeneratingPdf(false);
+                }
+            };
+
+            return (
+                <div className="min-h-screen pb-20">
+                    <header className="text-center mb-8 pt-10">
+                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-pink-500 text-white shadow-lg mb-4">
+                            <i className="fas fa-compact-disc text-xl"></i>
+                        </div>
+                        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-2">
+                            미니 CD <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-500 to-pink-500">앨범 커버</span> 메이커
+                        </h1>
+                        <p className="text-slate-500 font-medium">선택만 하면 AI 프롬프트 완성! 제미나이에서 만들고 인쇄해 보세요.</p>
+                    </header>
+
+                    <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 items-start px-4">
+                        
+                        {/* STEP 1: 프롬프트 만들기 */}
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8">
+                            <div className="flex items-center gap-2 mb-6 border-b border-slate-100 pb-4">
+                                <span className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">1</span>
+                                <h2 className="text-xl font-bold">컨셉 고르고 프롬프트 복사하기</h2>
+                            </div>
+
+                            <div className="space-y-5">
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">앨범 이름 (영어)</label>
+                                    <input type="text" value={albumName} onChange={(e) => setAlbumName(e.target.value)} placeholder="예: NEWJEANS" className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none uppercase placeholder:normal-case font-medium" />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">인원 구성</label>
+                                    <div className="flex gap-4">
+                                        <label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={groupType === 'solo'} onChange={() => setGroupType('solo')} className="w-4 h-4 text-indigo-600" /> <span>솔로 (1인)</span></label>
+                                        <label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={groupType === 'group'} onChange={() => setGroupType('group')} className="w-4 h-4 text-indigo-600" /> <span>그룹 (다인원)</span></label>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">앨범 분위기</label>
+                                    <select value={selectedVibe} onChange={(e) => setSelectedVibe(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                        {Object.entries(CONCEPT_DATA).map(([key, data]) => <option key={key} value={key}>{data.label}</option>)}
+                                    </select>
+                                </div>
+
+                                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-1">메인 컬러 (2가지)</label>
+                                        <select value={selectedColor} onChange={(e) => setSelectedColor(e.target.value)} className="w-full p-2 rounded border">{CONCEPT_DATA[selectedVibe].colors.map(c => <option key={c} value={c}>{c}</option>)}</select>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1">배경 장소</label>
+                                            <select value={selectedBg} onChange={(e) => setSelectedBg(e.target.value)} className="w-full p-2 rounded border">{CONCEPT_DATA[selectedVibe].bgs.map(b => <option key={b} value={b}>{b}</option>)}</select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1">장식(오브제)</label>
+                                            <select value={selectedObj} onChange={(e) => setSelectedObj(e.target.value)} className="w-full p-2 rounded border">{CONCEPT_DATA[selectedVibe].objs.map(o => <option key={o} value={o}>{o}</option>)}</select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-slate-800 p-4 rounded-xl relative group">
+                                    <p className="text-sm text-slate-300 mb-2 font-bold"><i className="fas fa-robot text-pink-400"></i> 완성된 프롬프트 (자동 생성)</p>
+                                    <p className="text-white text-sm leading-relaxed">{generatePrompt()}</p>
+                                    
+                                    <button onClick={handleCopyPrompt} className={`w-full mt-4 py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors ${copied ? 'bg-emerald-500 text-white' : 'bg-indigo-500 hover:bg-indigo-600 text-white'}`}>
+                                        {copied ? <><i className="fas fa-check"></i> 복사 완료!</> : <><i className="fas fa-copy"></i> 프롬프트 복사하기</>}
+                                    </button>
+                                </div>
+
+                                <a href="https://gemini.google.com" target="_blank" className="block w-full py-3 rounded-lg border-2 border-indigo-500 text-indigo-600 font-bold text-center hover:bg-indigo-50 transition-colors">
+                                    <i className="fas fa-external-link-alt mr-2"></i> 구글 제미나이 열기 (여기에 붙여넣기!)
+                                </a>
+                            </div>
+                        </div>
+
+                        {/* STEP 2: 도안 만들기 */}
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 flex flex-col h-full">
+                            <div className="flex items-center gap-2 mb-6 border-b border-slate-100 pb-4">
+                                <span className="w-8 h-8 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center font-bold">2</span>
+                                <h2 className="text-xl font-bold">이미지 첨부 및 인쇄 추가</h2>
+                            </div>
+
+                            <p className="text-sm text-slate-500 mb-4 font-medium">제미나이가 그려준 이미지를 컴퓨터에 저장한 뒤 아래에 첨부해 주세요.</p>
+                            
+                            <div className="flex-grow flex flex-col items-center justify-center">
+                                <input type="file" className="hidden" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" />
+                                
+                                {finalImage ? (
+                                    <div className="w-full flex flex-col items-center">
+                                        <div className="relative w-64 h-64 shadow-xl rounded-md overflow-hidden border border-slate-200 bg-white mb-6">
+                                            <img src={finalImage} alt="Album Cover" className="w-full h-full object-cover" />
+                                            <button onClick={() => setFinalImage(null)} className="absolute top-2 right-2 bg-slate-800 text-white w-8 h-8 rounded-full shadow hover:bg-red-500 flex items-center justify-center"><i className="fas fa-times"></i></button>
+                                        </div>
+                                        
+                                        <div className="flex flex-col items-center gap-4 bg-slate-50 w-full rounded-2xl p-4 border border-slate-100">
+                                            <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-full border border-slate-200 shadow-sm w-max">
+                                                <span className="text-sm font-bold text-slate-700"><i className="fas fa-palette text-pink-500 mr-2"></i>CD 뒷면 색상:</span>
+                                                <input type="color" value={backColor} onChange={(e) => setBackColor(e.target.value)} className="w-8 h-8 cursor-pointer rounded border-0" />
+                                            </div>
+                                            
+                                            <button onClick={addToPrintList} disabled={printList.length >= 10} className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:opacity-90 text-white rounded-xl text-lg font-bold flex items-center justify-center gap-2 shadow-md">
+                                                <i className="fas fa-plus-circle"></i> 인쇄 목록에 추가하기
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div onClick={() => fileInputRef.current?.click()} className="w-full max-w-sm h-64 bg-slate-50 rounded-2xl flex flex-col items-center justify-center border-2 border-dashed border-indigo-300 text-indigo-500 cursor-pointer hover:bg-indigo-50 transition-colors">
+                                        <i className="fas fa-cloud-upload-alt text-5xl mb-4 text-indigo-400"></i>
+                                        <span className="font-bold">여기를 클릭하여 이미지 첨부</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </main>
+                    
+                    {/* STEP 3: 인쇄 컬렉션 (이전과 동일한 기능) */}
+                    <section className="max-w-6xl mx-auto mt-12 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 px-4 no-print">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-100 pb-4 mb-6 gap-4">
+                            <div className="flex items-center gap-2">
+                                <i className="fas fa-print text-2xl text-indigo-500"></i>
+                                <h2 className="text-xl font-bold text-slate-800">인쇄용 도안 컬렉션</h2>
+                            </div>
+                            <div className="flex gap-2 w-full md:w-auto">
+                                <button onClick={() => {if(window.confirm('전체 삭제하시겠습니까?')) setPrintList([])}} disabled={printList.length === 0} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-bold flex items-center gap-2 disabled:opacity-50">
+                                    <i className="fas fa-trash"></i> 전체 삭제
+                                </button>
+                                <button onClick={saveAsPdf} disabled={printList.length === 0 || isGeneratingPdf} className="px-6 py-2 bg-[#6b4eff] hover:bg-indigo-600 text-white rounded-lg text-sm font-bold flex items-center gap-2 disabled:opacity-50 shadow-sm">
+                                    {isGeneratingPdf ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-file-pdf"></i>} 
+                                    {isGeneratingPdf ? 'PDF 생성 중...' : 'A4 PDF로 저장하기'}
+                                </button>
+                            </div>
+                        </div>
+
+                        {printList.length === 0 ? (
+                            <div className="py-16 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 text-slate-400 gap-3">
+                                <i className="fas fa-image text-4xl opacity-30"></i>
+                                <p className="text-sm font-medium text-center">아직 추가된 이미지가 없습니다.</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-6">
+                                {printList.map((item, idx) => (
+                                    <div key={item.id} className="relative group flex flex-col items-center">
+                                        <span className="absolute -top-3 -left-3 w-8 h-8 bg-slate-800 text-white rounded-full flex items-center justify-center text-sm font-bold z-10 shadow-md">{idx + 1}</span>
+                                        <button onClick={() => setPrintList(prev => prev.filter(i => i.id !== item.id))} className="absolute -top-3 -right-3 w-8 h-8 bg-slate-700 text-white hover:bg-rose-500 rounded-full flex items-center justify-center z-10 shadow-md transition-colors"><i className="fas fa-times"></i></button>
+                                        
+                                        <div className="flex border border-slate-300 w-full max-w-[320px] aspect-[80/37] shadow-sm overflow-hidden bg-white">
+                                            {/* 왼쪽 (뒷면) */}
+                                            <div className="w-1/2 h-full flex items-center justify-center border-r border-dashed border-slate-400 relative" style={{ backgroundColor: item.backColor }}>
+                                                <span className="absolute whitespace-nowrap transform -rotate-90 text-[11px] tracking-widest text-slate-800 font-bold mix-blend-multiply opacity-80 uppercase">{item.albumName}</span>
+                                            </div>
+                                            {/* 오른쪽 (앞면) */}
+                                            <div className="w-1/2 h-full bg-slate-100"><img src={item.imageUrl} className="w-full h-full object-cover block" /></div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </section>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
